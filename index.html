@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fighter Pro: Sudden Death</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Google Fonts for premium typography -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap"
+    rel="stylesheet">
+
+  <!-- SweetAlert2 CDN Installation-->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="1000" height="500"></canvas>
+
+    <div id="mainMenu" class="screen">
+      <h1>FIGHTER PRO</h1>
+      <h3 style="color:#0ff; margin-bottom:10px; font-family: 'Orbitron', sans-serif; letter-spacing: 2px;">SUDDEN DEATH
+        RPG</h3>
+      <div class="menu-stats">SCORE: <span id="menuScore">0</span> | LEVEL: <span id="menuLevel">1</span></div>
+
+      <div class="button-group">
+        <div style="position: relative; width: 320px;">
+          <button onclick="startGame(false)">Campaign (Continue)</button>
+          <button onclick="window.location.href='farm.html'" class="farm-mini-btn">
+            <span>🌾</span> FARM
+          </button>
+        </div>
+        <button onclick="startGame(true)">PvP (Multiplayer)</button>
+        <button onclick="openShop()">Black Market</button>
+        <button onclick="openSettings()">Settings</button>
+      </div>
+
+      <div id="instructionsBtn" onclick="toggleInstructions()">Instructions</div>
+      <div class="version">v1.2.5 Enhanced</div>
+
+      <!-- Developer Info Icon -->
+      <div id="devInfoBtn" onclick="toggleDevInfo()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </div>
+    </div>
+
+    <div id="shopScreen" class="screen hidden">
+      <h2>Black Market</h2>
+      <div class="shop-balance">Score: <span id="shopScore">0</span></div>
+
+      <div class="shop-grid">
+        <div class="shop-item" onclick="buyItem('hp')">
+          <div class="item-name">Vitality (+5 Max HP)</div>
+          <div class="item-cost" id="cost-hp">2,500 Pts</div>
+          <div class="item-desc">Current: +<span id="bonusHpDisplay">0</span></div>
+        </div>
+
+        <div class="shop-item" onclick="buyItem('dmg')">
+          <div class="item-name">Strength (+1 Dmg)</div>
+          <div class="item-cost" id="cost-dmg">4,000 Pts</div>
+          <div class="item-desc">Current: +<span id="bonusDmgDisplay">0</span></div>
+        </div>
+
+        <div class="shop-item" onclick="buyItem('speed')">
+          <div class="item-name">Agility (+0.1 Spd)</div>
+          <div class="item-cost" id="cost-speed">2,000 Pts</div>
+          <div class="item-desc">Current: +<span id="bonusSpdDisplay">0</span></div>
+        </div>
+
+        <div class="shop-item" onclick="buyItem('crit')">
+          <div class="item-name">Precision (+5% Crit)</div>
+          <div class="item-cost" id="cost-crit">5,000 Pts</div>
+          <div class="item-desc">Chance: <span id="bonusCritDisplay">0</span>%</div>
+        </div>
+
+        <div class="shop-item" onclick="buyItem('lifesteal')">
+          <div class="item-name">Vampirism (+1 Heal)</div>
+          <div class="item-cost" id="cost-lifesteal">8,000 Pts</div>
+          <div class="item-desc">Heal on Hit: <span id="bonusLifeDisplay">0</span></div>
+        </div>
+      </div>
+
+      <button onclick="closeShop()" class="back-btn">Back to Menu</button>
+    </div>
+
+    <div id="settingsMenu" class="screen hidden">
+      <h2>Settings</h2>
+
+      <div class="settings-panel">
+        <button onclick="toggleFullscreen()" class="setting-btn">
+          Toggle Fullscreen
+        </button>
+
+        <div class="danger-zone">
+          <button onclick="resetProgress()" class="reset-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            RESET SAVE DATA
+          </button>
+        </div>
+      </div>
+
+      <button onclick="closeSettings()" class="back-btn">Back to Menu</button>
+    </div>
+
+    <div id="pauseMenu" class="screen hidden">
+      <h2>Paused</h2>
+      <div class="button-group">
+        <button onclick="resumeGame()">Resume</button>
+        <button onclick="restartGame()">Restart Round</button>
+        <button onclick="mainMenu()">Main Menu</button>
+      </div>
+    </div>
+
+    <div id="gameOverScreen" class="screen hidden">
+      <h2 id="gameOverTitle">Round Over</h2>
+      <div style="font-size:24px; margin:20px; text-shadow:0 0 20px #0f0; font-family: 'Orbitron', sans-serif;">
+        <span id="winnerText"></span>
+      </div>
+      <div id="roundScoreGain"
+        style="color:#ff0; font-family:'Rajdhani', sans-serif; font-size: 20px; margin-bottom:10px;"></div>
+
+      <div class="button-group">
+        <button id="nextRoundBtn" onclick="nextRound()">Next Round</button>
+        <button id="restartBtn" onclick="restartGame()">Try Again</button>
+        <button onclick="mainMenu()">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sound & Shop Modules -->
+  <script src="js/modules/backend/api.js"></script>
+  <script src="js/modules/sound.js"></script>
+  <script src="js/modules/shop.js"></script>
+  <script src="js/modules/multiplayer.js"></script>
+
+  <!-- Core Game Engine -->
+  <script src="js/script.js"></script>
+
+  <!-- AI & Modal Systems -->
+  <script src="js/modules/enemy.js"></script>
+  <script src="js/modules/modal.js"></script>
+</body>
+
+</html>

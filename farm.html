@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Mode - FIGHTER PRO</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            background: #0f172a;
+            /* Fallback */
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            color: #eee;
+        }
+
+        .farm-container {
+            position: relative;
+            width: 1000px;
+            height: 500px;
+            /* Modern 2D RPG Farm Background */
+            background:
+                linear-gradient(to bottom, #1e293b 0%, #334155 40%, #064e3b 40.5%, #064e3b 100%);
+            background-size: 100% 100%;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 80px rgba(0, 0, 0, 0.8), inset 0 0 100px rgba(16, 185, 129, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: auto;
+        }
+
+        /* Add some atmospheric depth with CSS overlays */
+        .farm-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.4) 100%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: auto;
+        }
+
+        /* Standardize SweetAlert size */
+        .swal2-popup {
+            font-size: 0.8rem !important;
+            width: 24rem !important;
+            padding: 1.5rem !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 8px !important;
+        }
+    </style>
+</head>
+
+<body class="overflow-hidden">
+    <!-- Main Game Box -->
+    <div class="flex flex-col items-center gap-6">
+        <div class="farm-container shadow-2xl">
+            <!-- Navigation Header Inside Container -->
+            <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 pointer-events-none">
+                <div class="flex flex-col gap-4 pointer-events-auto ml-4"> <!-- Added ml-4 to move Right -->
+                    <button onclick="window.location.href='index.html'"
+                        class="px-5 py-2 bg-gradient-to-r from-red-900/90 to-red-600/90 hover:from-red-600 hover:to-red-500 text-white font-black rounded-sm shadow-lg transition-all duration-300 hover:scale-105 border-l-4 border-red-500 text-xs"
+                        style="font-family: 'Orbitron', sans-serif; letter-spacing: 2px;">
+                        ← EXIT
+                    </button>
+
+                    <!-- Player HUD Inside Container -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-[9px] font-black text-cyan-400"
+                            style="font-family: 'Orbitron', sans-serif;">BIO-SCAN</span>
+                        <div class="w-48 h-2 bg-slate-900/80 rounded-full border border-cyan-500/30 overflow-hidden">
+                            <div id="playerHpBar"
+                                class="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all duration-500"
+                                style="width: 100%;"></div>
+                        </div>
+                        <span id="playerHpText" class="text-[9px] font-bold text-emerald-400">25/25</span>
+                        <!-- text-emerald-400 for Light Green -->
+                    </div>
+                </div>
+
+                <!-- Stats Panel Inside Container -->
+                <div
+                    class="bg-black/80 backdrop-blur-md px-6 py-4 rounded-sm border-r-4 border-emerald-500 shadow-2xl pointer-events-auto text-right mr-10 mt-6">
+                    <div class="text-emerald-400 font-black text-[10px] mb-3 flex items-center justify-end gap-2"
+                        style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">
+                        <span class="animate-pulse text-emerald-500">●</span> LIVE FARMING
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-8 gap-y-4" style="font-family: 'Rajdhani', sans-serif;">
+                        <div class="flex flex-col items-end">
+                            <span class="text-slate-500 text-[10px] uppercase font-bold">Earnings</span>
+                            <span id="farmScore" class="text-xl text-yellow-500 font-black">0</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-slate-500 text-[10px] uppercase font-bold">Kills</span>
+                            <span id="mobsKilled" class="text-xl text-red-500 font-black">0</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-slate-500 text-[10px] uppercase font-bold text-cyan-400">Dmg Power</span>
+                            <span id="farmDmg" class="text-xl text-cyan-400 font-black">0</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-slate-500 text-[10px] uppercase font-bold text-emerald-400">Game
+                                Level</span>
+                            <span id="farmLevel" class="text-xl text-emerald-400 font-black">0</span>
+                        </div>
+                        <div class="flex flex-col items-end col-span-2 border-t border-white/5 pt-2">
+                            <span class="text-slate-500 text-[9px] uppercase font-bold">Current Rate</span>
+                            <span id="currentReward" class="text-lg text-emerald-400 font-black">25</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <!-- Progress Indicator (Below Container) -->
+        <div class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">
+            <div class="w-12 h-[1px] bg-slate-800"></div>
+            Next Increase in <span id="rewardTimerDisp" class="text-emerald-500">03:00</span>
+            <div class="w-12 h-[1px] bg-slate-800"></div>
+        </div>
+    </div>
+
+    <!-- External Logic Scripts -->
+    <script>window.isFarming = true;</script>
+    <script src="js/modules/backend/api.js"></script>
+    <script src="js/modules/sound.js"></script>
+    <script src="js/modules/shop.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/modules/farm.js"></script>
+</body>
+
+</html>
