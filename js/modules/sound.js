@@ -1,7 +1,28 @@
 // sound.js - Centralized Audio Management System
 
-const SFX_VOL = 1.0;
-const BGM_VOL = 0.3;
+let SFX_VOL = 1.0;
+let BGM_VOL = 0.3;
+let MASTER_VOL = (parseInt(localStorage.getItem('fighterPro_volume')) || 80) / 100;
+
+// Update Master Volume
+window.updateGlobalVolume = function (multiplier) {
+    MASTER_VOL = multiplier;
+
+    // Update active BGM
+    audio.bgm_menu.volume = BGM_VOL * MASTER_VOL;
+    audio.bgm_game.volume = BGM_VOL * MASTER_VOL;
+
+    // Update major UI SFX
+    audio.hover.volume = 0.5 * MASTER_VOL;
+    audio.select.volume = 0.8 * MASTER_VOL;
+    audio.defeat.volume = SFX_VOL * MASTER_VOL;
+    audio.bgm_win.volume = 0.6 * MASTER_VOL;
+
+    // Mass update arrays
+    audio.hits.forEach(s => s.volume = SFX_VOL * MASTER_VOL);
+    audio.playerHurt.forEach(s => s.volume = 0.8 * MASTER_VOL);
+    audio.mobPop.forEach(s => s.volume = 0.7 * MASTER_VOL);
+};
 
 // Audio Assets
 const audio = {
@@ -24,20 +45,20 @@ const audio = {
 };
 
 // Initialize SFX
-audio.hover.volume = 0.5;
-audio.select.volume = 0.8;
+audio.hover.volume = 0.5 * MASTER_VOL;
+audio.select.volume = 0.8 * MASTER_VOL;
 
 for (let i = 1; i <= 5; i++) {
     const sfx = new Audio(`music/bgm/hurt/player-hurt-${i}.m4a`);
-    sfx.volume = 0.8;
+    sfx.volume = 0.8 * MASTER_VOL;
     audio.playerHurt.push(sfx);
 }
-audio.defeat.volume = SFX_VOL;
-audio.bgm_win.volume = 0.6; // Reduced to avoid startling (previously 1.0)
+audio.defeat.volume = SFX_VOL * MASTER_VOL;
+audio.bgm_win.volume = 0.6 * MASTER_VOL;
 // ... rest of init
 for (let i = 1; i <= 10; i++) {
     const sfx = new Audio(`music/bgm/hit/hit-${i}.m4a`);
-    sfx.volume = SFX_VOL;
+    sfx.volume = SFX_VOL * MASTER_VOL;
     audio.hits.push(sfx);
 }
 
@@ -118,10 +139,10 @@ let currentHitIndex = 0;
 
 // Initialization
 audio.bgm_menu.loop = true;
-audio.bgm_menu.volume = BGM_VOL;
+audio.bgm_menu.volume = BGM_VOL * MASTER_VOL;
 
 audio.bgm_game.loop = true;
-audio.bgm_game.volume = BGM_VOL;
+audio.bgm_game.volume = BGM_VOL * MASTER_VOL;
 
 /**
  * Play Menu Music

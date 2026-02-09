@@ -80,10 +80,15 @@ class FarmMob {
             this.vx = 0;
             // Attack player
             if (this.atkCD <= 0) {
-                const dmg = Math.floor(Math.random() * (mobStats.dmg.max - mobStats.dmg.min + 1)) + mobStats.dmg.min;
+                const rawDmg = Math.floor(Math.random() * (mobStats.dmg.max - mobStats.dmg.min + 1)) + mobStats.dmg.min;
+
+                // --- FARM MODE DAMAGE SCALING ---
+                // To prevent 'Spike Damage' bug: 1 unit of damage in Farm = 1% of Base Vitality (25).
+                // Formula: Actual HP units to subtract = rawDmg * 0.25
+                const scaledDmg = rawDmg * 0.25;
 
                 // Trigger Engine Hit (State change + Knockback)
-                p1.hit(dmg, this.x);
+                p1.hit(scaledDmg, this.x);
                 p1.slowTimer = 150; // 2.5s hit-slow effect
 
                 // Trigger Visual FX
@@ -92,7 +97,8 @@ class FarmMob {
                 }
 
                 this.atkCD = 100; // Slower attack rate for mobs
-                createDamageText(p1.x + 125, p1.y + 80, `-${dmg} HP`, '#ff3333');
+                // Display the rawDmg value (e.g. -5 HP) which now matches exactly 5% reduction on HUD
+                createDamageText(p1.x + 125, p1.y + 80, `-${rawDmg} HP`, '#ff3333');
 
                 if (p1.hp <= 0) {
                     handlePlayerDeath();
@@ -430,6 +436,12 @@ function drawModernBackground() {
 function farmLoop() {
     if (!window.gameRunning) return;
 
+    // PAUSE GUARD: Halts game logic but keeps loop alive
+    if (window.isPaused) {
+        requestAnimationFrame(farmLoop);
+        return;
+    }
+
     // Clear and draw RPG BG
     drawModernBackground();
 
@@ -453,20 +465,44 @@ function farmLoop() {
 
 // ===== INITIALIZE =====
 async function initFarm() {
-    // 1. Preload Player Assets
+    // 1. Preload Player Assets (uses optimized parallel loader from script.js)
     if (window.preload) await window.preload();
 
-    // 2. Load Mob Sprites
+    // 2. Load Mob Sprites (PARALLEL LOADING)
+    const mobPromises = [];
     for (const key in mobAnims) {
         const anim = mobAnims[key];
         mobSprites[key] = [];
         for (let i = anim.start; i <= anim.end; i++) {
+            const src = `${anim.path}${anim.prefix}${i}).png`;
+
+            // Check global cache first
+            if (window.imageCache && window.imageCache[src]) {
+                mobSprites[key].push(window.imageCache[src]);
+                continue;
+            }
+
             const img = new Image();
-            img.src = `${anim.path}${anim.prefix}${i}).png`;
+            img.src = src;
             mobSprites[key].push(img);
-            await new Promise(r => img.onload = r);
+
+            const promise = new Promise((resolve) => {
+                img.onload = () => {
+                    if (window.imageCache) window.imageCache[src] = img;
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.warn(`Missing mob sprite: ${src}`);
+                    resolve();
+                };
+            });
+
+            mobPromises.push(promise);
         }
     }
+
+    // Wait for all mob sprites to load in parallel
+    await Promise.all(mobPromises);
 
     // 3. Setup Global p1 (Fighter)
     p1 = new Fighter(450, true, 1);

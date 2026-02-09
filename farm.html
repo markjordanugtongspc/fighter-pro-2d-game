@@ -139,13 +139,43 @@
         </div>
     </div>
 
+    <!-- Farm Pause Modal -->
+    <div id="pauseMenu"
+        class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-emerald-500/50 p-8 rounded-sm shadow-2xl max-w-xs w-full text-center">
+            <h2 class="text-2xl text-emerald-500 font-black mb-6 tracking-widest"
+                style="font-family: 'Orbitron', sans-serif;">STASIS</h2>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="resumeGame()"
+                    class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold tracking-wider transition-all duration-200">
+                    RESUME SCAN
+                </button>
+                <button onclick="location.reload()"
+                    class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold tracking-wider border border-white/5 transition-all duration-200">
+                    RESTART FARM
+                </button>
+                <button onclick="window.location.href='index.html'"
+                    class="w-full py-3 bg-red-900/40 hover:bg-red-900/60 text-red-500 font-bold tracking-wider border border-red-900/50 transition-all duration-200">
+                    EVACUATE
+                </button>
+            </div>
+
+            <div class="mt-6 text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                FIGHTER PRO v1.5.0 Performance
+            </div>
+        </div>
+    </div>
+
     <!-- External Logic Scripts -->
     <script>window.isFarming = true;</script>
     <script src="js/modules/backend/api.js"></script>
     <script src="js/modules/sound.js"></script>
+    <script src="js/modules/settings.js"></script>
     <script src="js/modules/shop.js"></script>
     <script src="js/script.js"></script>
     <script src="js/modules/farm.js"></script>
+    <script src="js/modules/debug.js"></script>
 </body>
 
 </html>

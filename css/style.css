@@ -308,9 +308,9 @@ button:active {
 .settings-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
-  max-width: 400px;
+  max-width: 340px;
   align-items: center;
 }
 
@@ -351,6 +351,84 @@ button:active {
   background: #ff0000;
   color: #000;
   box-shadow: 0 0 30px #ff0000;
+}
+
+/* --- Volume Slider Modernization --- */
+.volume-container {
+  width: 100%;
+  padding: 0 20px;
+  background: rgba(0, 255, 255, 0.05);
+  border-left: 2px solid var(--accent);
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.val-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.val-label {
+  font-family: var(--font-head);
+  font-size: 0.75rem;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.val-percent {
+  font-family: var(--font-head);
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.slider-box {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.vol-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.cyber-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #222;
+  outline: none;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.cyber-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent);
+  transition: transform 0.1s ease;
+}
+
+.cyber-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.cyber-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent);
+  transition: transform 0.1s ease;
 }
 
 #instructionsBtn {
@@ -416,4 +494,61 @@ button:active {
 
 .no-bg-container {
   background: transparent !important;
+}
+
+/* --- Settings Pagination --- */
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px !important;
+  font-size: 0.8rem !important;
+  width: auto !important;
+  clip-path: none !important;
+  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid #333 !important;
+  color: #888 !important;
+}
+
+.tab-btn.active {
+  background: var(--accent) !important;
+  color: #000 !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 15px var(--accent);
+}
+
+.settings-page {
+  display: none;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+}
+
+.settings-page.active {
+  display: flex;
+}
+
+.sub-header {
+  font-family: var(--font-head);
+  font-size: 1rem;
+  color: #fff;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  width: 100%;
+  text-align: left;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+#pauseMenu h2 {
+  color: var(--accent);
+  text-shadow: 0 0 20px var(--accent);
 }

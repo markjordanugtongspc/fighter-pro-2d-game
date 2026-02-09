@@ -48,20 +48,26 @@ function closeShop() {
     document.getElementById('mainMenu').classList.remove('hidden');
 }
 
-function openSettings() {
-    document.getElementById('mainMenu').classList.add('hidden');
-    document.getElementById('settingsMenu').classList.remove('hidden');
-}
-
-function closeSettings() {
-    document.getElementById('settingsMenu').classList.add('hidden');
-    document.getElementById('mainMenu').classList.remove('hidden');
-}
 
 function getCostMult() {
     const level = window.saveData.gameLevel || 0;
-    // Price increases every 10 levels (1x, 2x, 3x...)
-    return 1 + Math.floor(level / 10);
+
+    // --- EXPONENTIAL SCALING FOR HIGH LEVELS ---
+    // Forces players to farm more at higher levels
+    if (level > 200) {
+        // Level 200+: 10x base cost + additional scaling
+        return 10 + Math.floor((level - 200) / 5);
+    } else if (level > 125) {
+        // Level 125-200: Exponential ramp from 4x to 10x
+        const progress = (level - 125) / 75; // 0 to 1
+        return 4 + Math.floor(progress * 6);
+    } else if (level > 75) {
+        // Level 75-125: Moderate scaling 2x to 4x
+        return 2 + Math.floor((level - 75) / 25);
+    } else {
+        // Level 0-75: Linear scaling (every 10 levels)
+        return 1 + Math.floor(level / 10);
+    }
 }
 
 function buyItem(type) {

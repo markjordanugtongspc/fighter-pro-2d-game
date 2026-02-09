@@ -39,7 +39,7 @@
       </div>
 
       <div id="instructionsBtn" onclick="toggleInstructions()">Instructions</div>
-      <div class="version">v1.2.5 Enhanced</div>
+      <div class="version">v1.5.0 Performance</div>
 
       <!-- Developer Info Icon -->
       <div id="devInfoBtn" onclick="toggleDevInfo()">
@@ -92,22 +92,47 @@
     </div>
 
     <div id="settingsMenu" class="screen hidden">
-      <h2>Settings</h2>
+      <h2 style="margin-bottom: 20px;">Settings</h2>
 
       <div class="settings-panel">
-        <button onclick="toggleFullscreen()" class="setting-btn">
-          Toggle Fullscreen
-        </button>
+        <div class="settings-tabs">
+          <button id="tab-general" class="tab-btn active" onclick="showSettingsPage('general')">General</button>
+          <button id="tab-audio" class="tab-btn" onclick="showSettingsPage('audio')">Audio</button>
+        </div>
 
-        <div class="danger-zone">
-          <button onclick="resetProgress()" class="reset-btn">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            RESET SAVE DATA
+        <div id="page-general" class="settings-page active">
+          <div class="sub-header">Graphics & System</div>
+          <button onclick="toggleFullscreen()" class="setting-btn" style="width: 100%;">
+            Toggle Fullscreen
           </button>
+
+          <div class="danger-zone">
+            <button onclick="resetProgress()" class="reset-btn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              RESET SAVE DATA
+            </button>
+          </div>
+        </div>
+
+        <div id="page-audio" class="settings-page">
+          <div class="sub-header">Audio Manager</div>
+          <div class="volume-container" style="margin-bottom: 0;">
+            <div class="val-header">
+              <span class="val-label">MASTER VOLUME</span>
+              <span id="volume-text" class="val-percent">80%</span>
+            </div>
+
+            <div class="slider-box">
+              <div id="volume-icon-container" class="vol-icon">
+                <!-- SVG will be injected by settings.js -->
+              </div>
+              <input type="range" id="volume-slider" min="0" max="100" value="80" class="cyber-slider">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -142,6 +167,7 @@
   <!-- Sound & Shop Modules -->
   <script src="js/modules/backend/api.js"></script>
   <script src="js/modules/sound.js"></script>
+  <script src="js/modules/settings.js"></script>
   <script src="js/modules/shop.js"></script>
   <script src="js/modules/multiplayer.js"></script>
 
@@ -151,6 +177,7 @@
   <!-- AI & Modal Systems -->
   <script src="js/modules/enemy.js"></script>
   <script src="js/modules/modal.js"></script>
+  <script src="js/modules/debug.js"></script>
 </body>
 
 </html>

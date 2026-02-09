@@ -138,7 +138,7 @@ window.toggleDevInfo = function () {
         html: `
             <div style="font-family: Rajdhani; margin-top: -4px;">
                 <b style="color: #00ffff; font-size: 0.7rem;">@WizKhalifaX_</b>
-                <div style="font-size: 0.5rem; color: #444; margin-top: 1px;">v1.2.5 Mod</div>
+                <div style="font-size: 0.5rem; color: #444; margin-top: 1px;">v1.5.0 Performance</div>
             </div>
         `
     });

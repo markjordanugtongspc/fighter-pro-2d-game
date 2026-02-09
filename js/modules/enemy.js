@@ -5,6 +5,48 @@ let jitterCounter = 0;
 let lastPlayerFacing = null;
 let jitterTimer = 0;
 
+// --- PREDICTIVE AI SYSTEM ---
+let playerActionHistory = [];
+let playerPositionHistory = [];
+let predictionConfidence = 0;
+
+function recordPlayerAction(action) {
+    playerActionHistory.push({ action, time: Date.now() });
+    if (playerActionHistory.length > 15) playerActionHistory.shift();
+}
+
+function recordPlayerPosition(x, y) {
+    playerPositionHistory.push({ x, y, time: Date.now() });
+    if (playerPositionHistory.length > 10) playerPositionHistory.shift();
+}
+
+function predictPlayerMovement() {
+    if (playerPositionHistory.length < 3) return null;
+
+    const recent = playerPositionHistory.slice(-3);
+    const dx = recent[2].x - recent[0].x;
+    const dy = recent[2].y - recent[0].y;
+
+    // Predict next position based on velocity
+    return {
+        predictedX: recent[2].x + dx,
+        predictedY: recent[2].y + dy,
+        confidence: Math.min(0.35, playerPositionHistory.length / 30) // Max 35% confidence
+    };
+}
+
+function detectPlayerPattern() {
+    if (playerActionHistory.length < 5) return null;
+
+    const recentActions = playerActionHistory.slice(-5);
+    const attackCount = recentActions.filter(a => a.action === 'attack').length;
+    const jumpCount = recentActions.filter(a => a.action === 'jump').length;
+
+    if (attackCount >= 3) return 'aggressive';
+    if (jumpCount >= 2) return 'evasive';
+    return 'neutral';
+}
+
 window.updateEnemyAI = function () {
     if (isMultiplayer || !p2 || p2.dead || p1.dead) {
         if (p2 && p2.aiKeys) {
@@ -17,6 +59,12 @@ window.updateEnemyAI = function () {
         }
         return;
     }
+
+    // --- RECORD PLAYER BEHAVIOR ---
+    recordPlayerPosition(p1.x, p1.y);
+    if (p1.state.startsWith('attack')) recordPlayerAction('attack');
+    if (p1.state === 'jump') recordPlayerAction('jump');
+    if (p1.state === 'slide') recordPlayerAction('slide');
 
     // --- JITTER & EXPLOIT DETECTION ---
     jitterTimer++;
@@ -50,6 +98,23 @@ window.updateEnemyAI = function () {
     const dist = p1.x - p2.x;
     const absDist = Math.abs(dist);
     const dy = Math.abs(p1.y - p2.y);
+
+    // --- PREDICTIVE AI BEHAVIOR ---
+    const prediction = predictPlayerMovement();
+    const pattern = detectPlayerPattern();
+
+    if (prediction && Math.random() < prediction.confidence) {
+        // Use predicted position instead of actual position
+        const predictedDist = prediction.predictedX - p2.x;
+
+        if (pattern === 'aggressive' && Math.random() < 0.4) {
+            // Preemptive dodge if player is attacking frequently
+            if (p2.y >= 250 && absDist < 150) {
+                p2.aiKeys.up = true;
+                setTimeout(() => { if (p2) p2.aiKeys.up = false; }, 150);
+            }
+        }
+    }
 
     // --- ANTI-EXPLOIT COUNTER-MEASURES ---
     if (isJittering && absDist < 300) {
@@ -114,42 +179,52 @@ window.updateEnemyAI = function () {
     }
     else if (playerCombo === 7) {
         // STAGE 2: ADAPTIVE COUNTER (Combo == 7)
-        // Brief evasion then immediate dash-in
+        // Brief evasion then AGGRESSIVE dash-in (FIX: Always run to prevent walk-back exploit)
         if (p2.fleeTimer === undefined) p2.fleeTimer = 0;
         p2.fleeTimer++;
 
-        const retreatFrames = 45; // Short tactical retreat (0.75s)
+        const retreatFrames = 35; // Reduced retreat time (0.58s)
 
         if (p2.fleeTimer < retreatFrames) {
-            // Tactical retreat + jumping
+            // Tactical retreat + jumping (ALWAYS RUN)
             p2.aiKeys.left = (dist > 0);
             p2.aiKeys.right = (dist < 0);
-            p2.aiKeys.run = true;
-            if (p2.y >= 250 && Math.random() < 0.2) p2.aiKeys.up = true;
+            p2.aiKeys.run = true; // CRITICAL FIX: Run during retreat
+            if (p2.y >= 250 && Math.random() < 0.3) p2.aiKeys.up = true;
         } else {
-            // Aggressive pursuit to break the combo
+            // Aggressive pursuit to break the combo (ALWAYS RUN)
             p2.aiKeys.left = (dist < 0);
             p2.aiKeys.right = (dist > 0);
-            p2.aiKeys.run = true;
-            if (absDist < 120 && dy < 95) {
+            p2.aiKeys.run = true; // CRITICAL FIX: Run during return
+
+            // More aggressive attack during return
+            if (absDist < 140 && dy < 95) {
                 p2.aiKeys.attack = true;
             }
+
+            // Slide aggressively if available
+            if (p2.slideCD === 0 && absDist > 100 && Math.random() < 0.4) {
+                p2.aiKeys.slide = true;
+                setTimeout(() => { if (p2) p2.aiKeys.slide = false; }, 120);
+            }
+
             // If combo persists, reset retreat timer occasionally to keep movement dynamic
-            if (p2.fleeTimer > 150) p2.fleeTimer = 0;
+            if (p2.fleeTimer > 120) p2.fleeTimer = 0;
         }
         aiDecisionTimer = threshold;
     }
     else if (playerCombo === 6) {
         if (p2.fleeTimer === undefined) p2.fleeTimer = 0;
         p2.fleeTimer++;
-        if (p2.fleeTimer < 120) {
+        if (p2.fleeTimer < 90) {
             p2.aiKeys.left = (dist > 0);
             p2.aiKeys.right = (dist < 0);
-            p2.aiKeys.run = true;
+            p2.aiKeys.run = true; // CRITICAL FIX: Run during retreat
         } else {
             p2.aiKeys.left = (dist < 0);
             p2.aiKeys.right = (dist > 0);
-            if (absDist < 115) p2.aiKeys.attack = true;
+            p2.aiKeys.run = true; // CRITICAL FIX: Run during return
+            if (absDist < 130) p2.aiKeys.attack = true;
         }
         aiDecisionTimer = threshold;
     }
@@ -168,9 +243,13 @@ window.updateEnemyAI = function () {
         }
     }
 
-    // Default Attack Trigger
+    // Default Attack Trigger (with prediction)
     if (playerCombo < 6 && absDist < 110 && dy < 95) {
-        const attackChance = isJittering ? 0.9 : 0.6;
+        let attackChance = isJittering ? 0.9 : 0.6;
+
+        // Increase attack chance if pattern is aggressive
+        if (pattern === 'aggressive') attackChance += 0.15;
+
         if (Math.random() < attackChance) p2.aiKeys.attack = true;
 
         if (!isJittering) {
@@ -184,13 +263,15 @@ window.updateEnemyAI = function () {
         }
     }
 
-    // Random Actions
+    // Random Actions (reduced when pattern is detected)
     if (playerCombo < 6 && !isJittering) {
-        if (p2.y >= 250 && Math.random() < 0.02) {
+        const randomness = pattern === 'neutral' ? 0.02 : 0.01;
+
+        if (p2.y >= 250 && Math.random() < randomness) {
             p2.aiKeys.up = true;
             setTimeout(() => { if (p2) p2.aiKeys.up = false; }, 100);
         }
-        if (absDist > 150 && p2.slideCD === 0 && Math.random() < 0.03) {
+        if (absDist > 150 && p2.slideCD === 0 && Math.random() < (randomness * 1.5)) {
             p2.aiKeys.slide = true;
             setTimeout(() => { if (p2) p2.aiKeys.slide = false; }, 100);
         }

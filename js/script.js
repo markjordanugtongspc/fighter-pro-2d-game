@@ -18,9 +18,9 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 let spriteSheets = {};
-let gameRunning = false;
-let isPaused = true;
-let isMultiplayer = false;
+window.gameRunning = false;
+window.isPaused = true;
+window.isMultiplayer = false;
 
 // Game State
 let roundScore = 0;
@@ -674,33 +674,138 @@ function drawUI() {
   }
 }
 
+// ===== OPTIMIZED PARALLEL ASSET LOADING SYSTEM =====
+// Global Image Cache to prevent re-downloading assets
+const imageCache = {};
+let loadedAssets = 0;
+let totalAssets = 0;
+
 async function preload() {
   spriteSheets = {};
+  const promises = [];
+  const assetList = [];
+
+  // Step 1: Calculate total assets for progress tracking
+  for (const key in assets) {
+    const anim = assets[key];
+    totalAssets += (anim.end - anim.start + 1);
+  }
+  totalAssets += 4; // Cloud sprites
+
+  // Step 2: Show loading modal with progress
+  const loadingModal = Swal.fire({
+    title: '<span style="font-family: Orbitron; color: #00ffff;">LOADING ASSETS</span>',
+    html: `
+      <div style="font-family: Rajdhani; color: #eee;">
+        <div style="font-size: 3rem; font-weight: bold; color: #00ffff; margin: 20px 0;" id="loadProgress">0%</div>
+        <div style="font-size: 1rem; color: #888;" id="loadDetails">Initializing...</div>
+        <div style="width: 100%; height: 4px; background: #222; margin-top: 20px; border-radius: 2px; overflow: hidden;">
+          <div id="loadBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00ffff, #ff00ff); transition: width 0.1s;"></div>
+        </div>
+      </div>
+    `,
+    background: 'rgba(10, 10, 15, 0.98)',
+    allowOutsideClick: false,
+    showConfirmButton: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  // Step 3: Create parallel load promises for fighter sprites
   for (const key in assets) {
     const anim = assets[key];
     spriteSheets[key] = [];
+
     for (let i = anim.start; i <= anim.end; i++) {
+      const src = `${anim.path}${anim.prefix}${pad(i)}.png`;
+
+      // Check cache first
+      if (imageCache[src]) {
+        spriteSheets[key].push(imageCache[src]);
+        loadedAssets++;
+        updateLoadingProgress();
+        continue;
+      }
+
       const img = new Image();
-      img.src = `${anim.path}${anim.prefix}${pad(i)}.png`;
+      img.src = src;
       spriteSheets[key].push(img);
-      await new Promise(resolve => {
-        img.onload = resolve;
-        img.onerror = () => { console.warn(`Missing: ${img.src}`); resolve(); };
+      assetList.push({ img, src });
+
+      // Create promise for parallel loading
+      const promise = new Promise((resolve) => {
+        img.onload = () => {
+          imageCache[src] = img; // Cache the loaded image
+          loadedAssets++;
+          updateLoadingProgress();
+          resolve();
+        };
+        img.onerror = () => {
+          console.warn(`Missing: ${src}`);
+          loadedAssets++;
+          updateLoadingProgress();
+          resolve();
+        };
       });
+
+      promises.push(promise);
     }
   }
 
-  // Preload Cloud Sprites
+  // Step 4: Create parallel load promises for cloud sprites
   cloudSprites = [];
   for (let i = 1; i <= 4; i++) {
+    const src = `img/clouds/cloud${i}.png`;
+
+    // Check cache first
+    if (imageCache[src]) {
+      cloudSprites.push(imageCache[src]);
+      loadedAssets++;
+      updateLoadingProgress();
+      continue;
+    }
+
     const img = new Image();
-    img.src = `img/clouds/cloud${i}.png`;
+    img.src = src;
     cloudSprites.push(img);
-    await new Promise(resolve => {
-      img.onload = resolve;
-      img.onerror = () => { console.warn(`Missing Cloud Image: ${img.src}`); resolve(); };
+
+    const promise = new Promise((resolve) => {
+      img.onload = () => {
+        imageCache[src] = img;
+        loadedAssets++;
+        updateLoadingProgress();
+        resolve();
+      };
+      img.onerror = () => {
+        console.warn(`Missing Cloud Image: ${src}`);
+        loadedAssets++;
+        updateLoadingProgress();
+        resolve();
+      };
     });
+
+    promises.push(promise);
   }
+
+  // Step 5: Wait for ALL assets to load in parallel
+  await Promise.all(promises);
+
+  // Step 6: Close loading modal
+  Swal.close();
+  console.log(`✅ Asset Loading Complete: ${loadedAssets}/${totalAssets} assets loaded from ${Object.keys(imageCache).length} cached entries.`);
+}
+
+// Helper function to update loading progress UI
+function updateLoadingProgress() {
+  const percent = Math.floor((loadedAssets / totalAssets) * 100);
+  const progressEl = document.getElementById('loadProgress');
+  const detailsEl = document.getElementById('loadDetails');
+  const barEl = document.getElementById('loadBar');
+
+  if (progressEl) progressEl.textContent = `${percent}%`;
+  if (detailsEl) detailsEl.textContent = `Loading ${loadedAssets} / ${totalAssets} assets...`;
+  if (barEl) barEl.style.width = `${percent}%`;
 }
 
 function checkAttacks() {
@@ -734,13 +839,37 @@ function checkAttacks() {
     if (dx < 115 && dy < 95 && !p2.isDying) {
       p1.hasHit = true;
 
-      let multiplier = 1 + (p1.comboCount * 0.5);
-      let totalDmg = p1.baseDmg * multiplier;
-      let isCrit = false;
       const level = (window.saveData && window.saveData.gameLevel) ? window.saveData.gameLevel : 0;
 
+      // --- DIMINISHING RETURNS SYSTEM ---
+      // Combo multiplier reduces at high levels to prevent spam farming
+      let comboMultiplierBase = 0.5;
+      if (level > 125) {
+        // Severe diminishing: 0.5 -> 0.15 at level 125+
+        comboMultiplierBase = Math.max(0.15, 0.5 - ((level - 125) * 0.01));
+      } else if (level > 75) {
+        // Moderate diminishing: 0.5 -> 0.3 at level 75-125
+        comboMultiplierBase = Math.max(0.3, 0.5 - ((level - 75) * 0.004));
+      }
+
+      let multiplier = 1 + (p1.comboCount * comboMultiplierBase);
+      let totalDmg = p1.baseDmg * multiplier;
+      let isCrit = false;
+
+      // --- CRITICAL EFFECTIVENESS SCALING ---
+      // Crit chance remains, but damage bonus reduces at high levels
       if (Math.random() < p1.critChance) {
-        totalDmg *= (3 + Math.random());
+        let critMultiplier = 3 + Math.random(); // Base: 3-4x
+
+        if (level > 125) {
+          // High level: Crit becomes 1.8-2.2x instead of 3-4x
+          critMultiplier = Math.max(1.8, critMultiplier - ((level - 125) * 0.02));
+        } else if (level > 75) {
+          // Mid level: Crit becomes 2.3-3.3x
+          critMultiplier = Math.max(2.3, critMultiplier - ((level - 75) * 0.01));
+        }
+
+        totalDmg *= critMultiplier;
         isCrit = true;
         shake = 10;
       }
@@ -803,6 +932,12 @@ function checkAttacks() {
 
 function loop() {
   if (!gameRunning) return;
+
+  // PAUSE GUARD: Skip update/draw logic if paused, but keep loop alive
+  if (isPaused) {
+    requestAnimationFrame(loop);
+    return;
+  }
 
   if (shake > 0.2) {
     shakeX = (Math.random() - 0.5) * shake * 2.2;
@@ -1098,10 +1233,6 @@ function gameOver(message) {
   safeText('winnerText', message);
 }
 
-function resumeGame() {
-  document.getElementById('pauseMenu').classList.add('hidden');
-  isPaused = false;
-}
 
 function mainMenu() {
   document.getElementById('pauseMenu').classList.add('hidden');
@@ -1116,14 +1247,6 @@ function mainMenu() {
   if (window.updateShopUI) window.updateShopUI();
 }
 
-function toggleFullscreen() {
-  const container = document.getElementById('gameContainer');
-  if (!document.fullscreenElement) {
-    container.requestFullscreen().catch(() => { });
-  } else {
-    document.exitFullscreen();
-  }
-}
 
 
 
